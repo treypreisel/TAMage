@@ -31,8 +31,8 @@ INPUT_CSV = os.path.join(HERE, "exports", "tam_main.csv")
 OUT_PATH = os.path.join(HERE, "scraped.jsonl")
 
 UA = "TAMage-research/0.1 (open-source GTM research; +https://github.com/treypreisel/tamage)"
-CONCURRENCY = 24
-PAGE_TIMEOUT = aiohttp.ClientTimeout(total=20)
+CONCURRENCY = 80
+PAGE_TIMEOUT = aiohttp.ClientTimeout(total=12)
 MAX_HTML_BYTES = 2_000_000
 HOME_TEXT_CAP = 15_000
 SUB_TEXT_CAP = 8_000
@@ -139,9 +139,12 @@ async def scrape_company(session, row):
     host = urlparse(final_url).netloc.removeprefix("www.")
     found = {}
     for a in soup.find_all("a", href=True):
-        label = f"{a.get_text(' ', strip=True)} {a['href']}"[:200]
-        target = urljoin(final_url, a["href"].split("#")[0])
-        if urlparse(target).netloc.removeprefix("www.") != host:
+        try:
+            label = f"{a.get_text(' ', strip=True)} {a['href']}"[:200]
+            target = urljoin(final_url, a["href"].split("#")[0])
+            if urlparse(target).netloc.removeprefix("www.") != host:
+                continue
+        except ValueError:  # malformed hrefs are common in the wild; skip them
             continue
         for kind, rx in SUBPAGE_PATTERNS.items():
             if kind not in found and rx.search(label):
@@ -181,8 +184,12 @@ async def main(limit=None):
     stats = {"done": 0, "ok": 0, "t0": time.time()}
 
     async def worker(row):
-        async with sem:
-            rec = await scrape_company(session, row)
+        try:
+            async with sem:
+                rec = await scrape_company(session, row)
+        except Exception as e:  # one company's weirdness must never kill the run
+            rec = {"id": row["id"], "domain": (row.get("website") or "").strip().lower(),
+                   "ok": False, "error": f"scrape crash: {type(e).__name__}"}
         async with lock:
             out.write(json.dumps(rec, ensure_ascii=False) + "\n")
             stats["done"] += 1
@@ -197,7 +204,7 @@ async def main(limit=None):
     connector = aiohttp.TCPConnector(limit=CONCURRENCY, ttl_dns_cache=300)
     async with aiohttp.ClientSession(headers={"User-Agent": UA},
                                      connector=connector) as session:
-        await asyncio.gather(*(worker(r) for r in todo))
+        await asyncio.gather(*(worker(r) for r in todo), return_exceptions=True)
     out.flush()
     out.close()
     print(f"finished: {stats['done']:,} scraped, {stats['ok']:,} ok "
