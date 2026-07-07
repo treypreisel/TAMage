@@ -13,6 +13,7 @@ free_company_dataset.json
 dataset/companies.parquet
 dataset/exports/
 dataset/scraped.jsonl
+dataset/enriched.jsonl
 dataset/.env
 
 # --- environment / OS ---
