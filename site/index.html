@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TAMage — Vector-Based Semantic TAM Segmentation</title>
+<meta name="description" content="An open-source CLI that finds natural semantic clusters in your total addressable market using vector embeddings. Coming soon.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:title" content="TAMage">
+<meta property="og:description" content="An open-source CLI for vector-based semantic TAM segmentation. Coming soon.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tamage.dev/">
+<meta property="og:image" content="https://tamage.dev/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="TAMage">
+<meta name="twitter:description" content="An open-source CLI for vector-based semantic TAM segmentation. Coming soon.">
+<meta name="twitter:image" content="https://tamage.dev/og.png">
+<style>
+  @font-face {
+    font-family: "Geist Pixel Grid";
+    src: url("fonts/GeistPixel-Grid.woff2") format("woff2");
+    font-display: block;
+  }
+  @font-face {
+    font-family: "Geist Mono";
+    src: url("fonts/GeistMono-Regular.woff2") format("woff2");
+    font-display: block;
+  }
+
+  html, body {
+    /* overflow: clip is stronger than hidden — removes the scroll mechanism
+       entirely, so the page cannot scroll even programmatically */
+    margin: 0; height: 100%; overflow: clip; background: #000;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  }
+  /* Lock the page to the viewport — nothing can scroll, bars always visible */
+  body { position: fixed; inset: 0; }
+
+  #space { position: fixed; inset: 0; display: block; width: 100%; height: 100%; }
+
+  /* ------------------------------------------------------------- hero */
+  /* All UI sizes are the Figma spec × 0.9 (Trey signed off on the 90%
+     look, 2026-07-02) — so the page is viewed at 100% browser zoom */
+  #hero {
+    position: fixed; inset: 0; display: flex;
+    align-items: center; justify-content: center;
+    pointer-events: none; user-select: none;
+  }
+  #lockup { display: flex; align-items: center; gap: 20px; }
+  #logo {
+    margin: 0; color: #fff; font-weight: 400;
+    font-family: "Geist Pixel Grid", ui-monospace, monospace;
+    /* integer -5px (≈ -6%) instead of em-based tracking: fractional tracking
+       makes every letter's pixel grid land differently → muddy gaps */
+    font-size: 86px; line-height: 86px; letter-spacing: -5px;
+  }
+  #logo .age { opacity: 0.7; }
+  #tag {
+    margin: 0; color: #E1F06F;
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 16px; line-height: 25px; letter-spacing: 0.05em;
+  }
+
+  /* -------------------------------------------------------- nav bars */
+  .bar {
+    position: fixed; left: 0; right: 0; display: flex;
+    justify-content: center; align-items: center; gap: 7px;
+    font-family: "Geist Mono", ui-monospace, monospace;
+  }
+  #topbar { top: 23px; }
+  #botbar { bottom: 27px; gap: 9px; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 25px; padding: 0 11px; box-sizing: border-box;
+    background: #0c0c0c; border: 1px solid #262626; border-radius: 3px;
+    color: #ddd; font: 9px/1 "Geist Mono", ui-monospace, monospace;
+    letter-spacing: 0.03em; text-decoration: none; cursor: pointer;
+  }
+  .btn:hover { border-color: #4a4a4a; color: #fff; }
+  .btn.icon { width: 25px; padding: 0; }
+  .btn svg { width: 11px; height: 11px; flex: none; }
+  .btn.accent { color: #fff; }          /* text white … */
+  .btn.accent svg { color: #E1F06F; }   /* … icons yellow */
+  #btnNpx { min-width: 135px; }
+
+  /* Mobile bar: hamburger + settings cog, shown under 700px */
+  #mobilebar { display: none; position: fixed; left: 0; right: 0; bottom: 22px;
+    justify-content: center; gap: 10px; }
+  #mobilebar .btn { width: 40px; height: 40px; padding: 0; }
+  #mobilebar .btn svg { width: 15px; height: 15px; }
+  #btnCogM { color: #E1F06F; }
+
+  /* Mobile hamburger menu */
+  #mmenu {
+    position: fixed; bottom: 74px; left: 16px; right: 16px; display: none;
+    background: rgba(5,5,5,0.94); border: 1px solid #262626;
+    padding: 4px 14px;
+    font-family: "Geist Mono", ui-monospace, monospace;
+  }
+  .mitem {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; box-sizing: border-box; padding: 12px 2px;
+    background: none; border: none; border-bottom: 1px solid #1a1a1a;
+    color: #ddd; font: 12px/1 "Geist Mono", ui-monospace, monospace;
+    letter-spacing: 0.03em; text-decoration: none; cursor: pointer; text-align: left;
+  }
+  .mitem:last-child { border-bottom: none; }
+  .mitem svg { width: 13px; height: 13px; flex: none; }
+  .mitem .yellow { color: #E1F06F; }
+
+  /* -------------------------------------- control panel (user-facing) */
+  #panel {
+    position: fixed; bottom: 68px; right: 22px; width: 238px;
+    background: rgba(5,5,5,0.9); border: 1px solid #262626;
+    padding: 13px 14px; display: none;
+    font: 10px/2 "Geist Mono", ui-monospace, monospace; color: #888;
+    user-select: none;
+  }
+  #panel .phead { color: #E1F06F; margin-bottom: 6px; }
+  #panel .phead::before { content: "~ "; color: #555; }
+  .prow { display: flex; align-items: center; gap: 8px; }
+  .plabel { width: 56px; color: #888; flex: none; }
+  .pval { color: #fff; min-width: 34px; text-align: right; margin-left: auto; }
+  .opt { cursor: pointer; color: #666; }
+  .opt::before { content: "["; color: #444; }
+  .opt::after { content: "]"; color: #444; }
+  .opt:hover { color: #ddd; }
+  .opt.active { color: #E1F06F; }
+  .dash {
+    cursor: ew-resize; letter-spacing: 1px; white-space: pre;
+    touch-action: none;
+  }
+  .dash .fill { color: #E1F06F; }
+  .dash .rest { color: #fff; opacity: 0.9; }
+  #panel .pfoot { margin-top: 8px; }
+
+  /* Connector between the Control Panel button and the panel (desktop) */
+  #connector { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
+
+  /* ------------------------------------------------------------ mobile */
+  @media (max-width: 700px) {
+    #topbar, #botbar { display: none; }
+    #mobilebar { display: flex; }
+    #hero { align-items: flex-start; padding-top: 72px; }
+    #lockup { flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+    #logo { font-size: clamp(44px, 14vw, 72px); line-height: 1.05; letter-spacing: -3px; }
+    #tag { font-size: 13px; line-height: 21px; }
+    #panel { left: 16px; right: 16px; width: auto; bottom: 74px; }
+    .prow-motion { display: none; }  /* mouse-follow is meaningless on touch */
+  }
+</style>
+</head>
+<body>
+<canvas id="space"></canvas>
+
+<div id="hero">
+  <div id="lockup">
+    <h1 id="logo">TAM<span class="age">AGE</span></h1>
+    <p id="tag">An Open-Source CLI for<br>Vector-Based Semantic<br>TAM Segmentation</p>
+  </div>
+</div>
+
+<nav class="bar" id="topbar">
+  <a class="btn icon" href="#" aria-label="X" title="X">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644z"/></svg>
+  </a>
+  <a class="btn" href="#">Research</a>
+  <a class="btn" href="#">Creator</a>
+  <a class="btn icon" href="https://www.linkedin.com/in/tpreisel-connect/" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn">
+    <svg viewBox="1.6 1.6 20.8 20.8" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452z"/></svg>
+  </a>
+</nav>
+
+<nav class="bar" id="botbar">
+  <button class="btn accent" id="btnNpx">
+    <span id="npxLabel">npx tamage init</span>
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+  </button>
+  <button class="btn accent" id="btnPanel">
+    Control Panel
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</nav>
+
+<nav class="bar" id="mobilebar">
+  <button class="btn" id="btnMenuM" aria-label="menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+  </button>
+  <button class="btn" id="btnCogM" aria-label="control panel">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</nav>
+
+<div id="mmenu">
+  <a class="mitem" href="#">research</a>
+  <a class="mitem" href="#">creator</a>
+  <a class="mitem" href="https://www.linkedin.com/in/tpreisel-connect/" target="_blank" rel="noopener">linkedin
+    <svg viewBox="1.6 1.6 20.8 20.8" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452z"/></svg>
+  </a>
+  <a class="mitem" href="#">twitter
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644z"/></svg>
+  </a>
+  <button class="mitem" id="btnNpxM"><span id="npxLabelM">npx</span>
+    <svg class="yellow" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+  </button>
+</div>
+
+<svg id="connector"><polyline id="connPath" fill="none" stroke="#262626" stroke-width="1"/></svg>
+
+<div id="panel">
+  <div class="phead">tamage.config</div>
+  <div class="prow"><span class="plabel">variant</span>
+    <span class="opt" data-variant="dots">dots</span>
+    <span class="opt active" data-variant="stars">stars</span>
+  </div>
+  <div class="prow prow-motion"><span class="plabel">motion</span>
+    <span class="opt active" data-motion="spin">spin</span>
+    <span class="opt" data-motion="mouse">mouse</span>
+  </div>
+  <div class="prow"><span class="plabel">points</span><span class="dash" data-key="count" data-min="500" data-max="2000" data-step="25"></span><span class="pval" data-val="count"></span></div>
+  <div class="prow"><span class="plabel">size</span><span class="dash" data-key="baseSize" data-min="0.3" data-max="2" data-step="0.05"></span><span class="pval" data-val="baseSize"></span></div>
+  <div class="prow"><span class="plabel">variance</span><span class="dash" data-key="variance" data-min="0" data-max="1" data-step="0.05"></span><span class="pval" data-val="variance"></span></div>
+  <div class="prow"><span class="plabel">depth</span><span class="dash" data-key="depth" data-min="0" data-max="1" data-step="0.05"></span><span class="pval" data-val="depth"></span></div>
+  <div class="prow"><span class="plabel">contrast</span><span class="dash" data-key="contrast" data-min="0" data-max="0.7" data-step="0.05"></span><span class="pval" data-val="contrast"></span></div>
+  <div class="prow"><span class="plabel">speed</span><span class="dash" data-key="speed" data-min="0" data-max="0.3" data-step="0.01"></span><span class="pval" data-val="speed"></span></div>
+  <div class="prow"><span class="plabel">twinkle</span><span class="dash" data-key="twinkle" data-min="0" data-max="1" data-step="0.05"></span><span class="pval" data-val="twinkle"></span></div>
+  <div class="pfoot">
+    <span class="opt" id="btnSeed">reseed</span>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ config
+   Locked-in brand settings (Trey, 2026-07-02). The user-facing control panel
+   exposes a subset; everything else is fixed here.
+   contrast: strays render at (1 - contrast). */
+const cfg = {
+  variant: "stars",
+  motion: "spin",    // "spin" | "mouse"
+  count: 800,
+  clusters: 5,
+  baseSize: 0.6,
+  variance: 0.8,
+  depth: 0.4,
+  speed: 0.10,       // spin: rad/s. mouse: sensitivity (range of cursor-driven rotation)
+  twinkle: 0.85,
+  contrast: 0.45,
+  clear: 0.25,
+  tilt: -0.42,
+  focal: 3.2,
+  seed: 537467,
+};
+
+/* --------------------------------------------------- seeded rng (mulberry32) */
+let rand;
+function reseed(s) {
+  let a = s >>> 0;
+  rand = () => {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const gauss = () => {
+  const u = Math.max(rand(), 1e-9), v = rand();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+};
+
+/* ------------------------------------------------------------- point cloud */
+let points = [];
+
+function randomUnitVec() {
+  const z = 2 * rand() - 1, phi = 2 * Math.PI * rand(), r = Math.sqrt(1 - z * z);
+  return [r * Math.cos(phi), r * Math.sin(phi), z];
+}
+
+function buildCloud() {
+  reseed(cfg.seed); // deterministic: same seed = same layout at any setting
+  points = [];
+
+  const centers = [];
+  while (centers.length < cfg.clusters) {
+    const c = randomUnitVec();
+    if (centers.every(o => c[0]*o[0] + c[1]*o[1] + c[2]*o[2] < 0.55)) {
+      c.push(rand()); // c[3] = depth level seed
+      centers.push(c);
+    }
+  }
+
+  const nStray = Math.round(cfg.count * 0.22);
+  const nClustered = cfg.count - nStray;
+
+  for (let i = 0; i < nClustered; i++) {
+    const c = centers[i % centers.length];
+    const clusterR = 1 - cfg.depth * (0.06 + 0.5 * c[3]);
+    const spread = 0.16 + 0.10 * (i % centers.length) / centers.length;
+    let p = [c[0] + gauss() * spread, c[1] + gauss() * spread, c[2] + gauss() * spread];
+    const r = clusterR * (1 + gauss() * (0.02 + 0.05 * cfg.depth)) / Math.hypot(...p);
+    p = p.map(v => v * r);
+    const n = Math.hypot(...p);
+    const dot = (p[0]*c[0] + p[1]*c[1] + p[2]*c[2]) / n;
+    const coreness = Math.min(1, Math.max(0, (dot - 0.86) / 0.14));
+    points.push(makePoint(p, coreness));
+  }
+  for (let i = 0; i < nStray; i++) {
+    const r = 1 - cfg.depth * 0.85 * Math.pow(rand(), 0.8);
+    points.push(makePoint(randomUnitVec().map(v => v * r), 0));
+  }
+}
+
+function makePoint(p, coreness) {
+  return {
+    x: p[0], y: p[1], z: p[2],
+    coreness,
+    jitterSeed: rand(),
+    phase: rand() * Math.PI * 2,
+    freq: 0.4 + rand() * 0.9,
+  };
+}
+
+/* ------------------------------------------------------------------ canvas */
+const canvas = document.getElementById("space");
+const ctx = canvas.getContext("2d");
+let W = 0, H = 0, DPR = 1;
+
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.round(W * DPR);
+  canvas.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener("resize", () => { resize(); snapLockup(); updateConnector(); });
+resize();
+
+/* Snap the lockup to whole device pixels — flex centering leaves it at a
+   fractional offset, which makes the pixel-grid wordmark render unevenly */
+function snapLockup() {
+  const lk = document.getElementById("lockup");
+  lk.style.transform = "";
+  const r = lk.getBoundingClientRect();
+  const q = 1 / DPR; // snap to device pixels, not CSS pixels
+  const dx = Math.round(r.left / q) * q - r.left;
+  const dy = Math.round(r.top / q) * q - r.top;
+  lk.style.transform = `translate(${dx.toFixed(3)}px, ${dy.toFixed(3)}px)`;
+}
+document.fonts.ready.then(snapLockup);
+
+/* ------------------------------------------------------------------ render */
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+let rotY = 0.6, tiltX = cfg.tilt;   // orientation state (shared by both modes)
+let mx = 0.5, my = 0.5, lastT = null;
+window.addEventListener("pointermove", e => { mx = e.clientX / W; my = e.clientY / H; });
+
+function drawStar(x, y, s) {
+  // 4-point needle sparkle: concave quadratic edges pinched hard toward the
+  // center, vertical arms slightly longer than horizontal (per brand ref)
+  const v = s, h = s * 0.78, q = s * 0.14;
+  ctx.beginPath();
+  ctx.moveTo(x, y - v);
+  ctx.quadraticCurveTo(x + q, y - q, x + h, y);
+  ctx.quadraticCurveTo(x + q, y + q, x, y + v);
+  ctx.quadraticCurveTo(x - q, y + q, x - h, y);
+  ctx.quadraticCurveTo(x - q, y - q, x, y - v);
+  ctx.closePath();
+  ctx.fill();
+}
+
+const smooth = (a, b, x) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+
+function frame(now) {
+  const t = now / 1000;
+  const dt = lastT === null ? 0 : Math.min(0.1, t - lastT);
+  lastT = t;
+
+  if (!reducedMotion) {
+    if (cfg.motion === "spin") {
+      rotY += cfg.speed * dt;
+      tiltX += (cfg.tilt - tiltX) * (1 - Math.exp(-4 * dt));
+    } else {
+      // speed doubles as mouse sensitivity: at 0.10 the cursor sweeps
+      // ±46° yaw / ±23° pitch; higher = wider swing
+      const k = 1 - Math.exp(-4 * dt);
+      rotY += ((mx - 0.5) * cfg.speed * 16 - rotY) * k;
+      tiltX += (cfg.tilt + (my - 0.5) * cfg.speed * 8 - tiltX) * k;
+    }
+  }
+
+  ctx.clearRect(0, 0, W, H);
+
+  const cy = Math.cos(rotY), sy = Math.sin(rotY);
+  const cx = Math.cos(tiltX), sx = Math.sin(tiltX);
+  const R = Math.min(W, H) * 0.36 * 0.9; // ×0.9: global 90% scale, matches UI
+  const midX = W / 2, midY = H / 2;
+
+  const projected = [];
+  for (const p of points) {
+    const x1 = p.x * cy + p.z * sy;
+    const z1 = -p.x * sy + p.z * cy;
+    const y2 = p.y * cx - z1 * sx;
+    const z2 = p.y * sx + z1 * cx;
+    const persp = cfg.focal / (cfg.focal - z2);
+    projected.push([p, x1 * persp, y2 * persp, z2, persp]);
+  }
+  projected.sort((a, b) => a[3] - b[3]);
+
+  // Elliptical legibility zone around the hero lockup
+  let lk = null;
+  const heroEl = document.getElementById("hero");
+  if (cfg.clear > 0 && heroEl.style.display !== "none") {
+    const r = document.getElementById("lockup").getBoundingClientRect();
+    lk = { cx: r.x + r.width / 2, cy: r.y + r.height / 2, rx: r.width / 2 + 43, ry: r.height / 2 + 43 };
+  }
+
+  for (const [p, px, py, z, persp] of projected) {
+    const spx = midX + px * R, spy = midY + py * R;
+    const depth = 0.22 + 0.78 * (z + 1) / 2;
+    const grade = p.coreness > 0 ? 1 : 1 - cfg.contrast;
+    let alpha = 0.92 * depth * grade;
+    if (lk) {
+      const e = Math.hypot((spx - lk.cx) / lk.rx, (spy - lk.cy) / lk.ry);
+      alpha *= 1 - cfg.clear * (1 - smooth(0.75, 1.35, e));
+    }
+
+    const spread = 0.45 + 1.75 * p.jitterSeed * p.jitterSeed;
+    const jitter = 1 + cfg.variance * (spread - 1);
+    let size = cfg.baseSize * jitter * persp * 0.9; // ×0.9: global 90% scale
+
+    if (cfg.variant === "stars") {
+      size *= 3.1;
+      if (!reducedMotion && p.coreness > 0) {
+        const tw = Math.sin(t * p.freq * 2 * Math.PI + p.phase);
+        alpha *= 1 + cfg.twinkle * p.coreness * tw * 0.5;
+        size *= 1 + cfg.twinkle * p.coreness * tw * 0.12;
+      }
+      ctx.fillStyle = `rgba(255,255,255,${Math.min(1, Math.max(0, alpha))})`;
+      drawStar(spx, spy, size);
+    } else {
+      ctx.fillStyle = `rgba(255,255,255,${Math.min(1, Math.max(0, alpha))})`;
+      ctx.beginPath();
+      ctx.arc(spx, spy, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  if (!document.hidden) requestAnimationFrame(frame);
+}
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) { lastT = null; requestAnimationFrame(frame); }
+});
+
+/* ----------------------------------------------------------- control panel */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+const DASH_N = 16;
+function renderDash(el) {
+  const { key, min, max } = el.dataset;
+  const frac = (cfg[key] - min) / (max - min);
+  const k = Math.round(Math.min(1, Math.max(0, frac)) * DASH_N);
+  el.innerHTML = `<span class="fill">${"-".repeat(k)}</span><span class="rest">${"-".repeat(DASH_N - k)}</span>`;
+}
+function syncPanel() {
+  $$(".dash").forEach(renderDash);
+  $('[data-val="count"]').textContent = cfg.count;
+  $('[data-val="baseSize"]').textContent = cfg.baseSize.toFixed(2);
+  $('[data-val="variance"]').textContent = cfg.variance.toFixed(2);
+  $('[data-val="depth"]').textContent = cfg.depth.toFixed(2);
+  $('[data-val="contrast"]').textContent = cfg.contrast.toFixed(2);
+  $('[data-val="speed"]').textContent = cfg.speed.toFixed(2);
+  $('[data-val="twinkle"]').textContent = cfg.twinkle.toFixed(2);
+  $$("[data-variant]").forEach(o => o.classList.toggle("active", o.dataset.variant === cfg.variant));
+  $$("[data-motion]").forEach(o => o.classList.toggle("active", o.dataset.motion === cfg.motion));
+}
+
+const rebuilds = new Set(["count", "depth"]);
+$$(".dash").forEach(el => {
+  const set = clientX => {
+    const { key, min, max, step } = el.dataset;
+    const r = el.getBoundingClientRect();
+    if (!r.width) return;
+    const frac = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+    const raw = +min + frac * (max - min);
+    cfg[key] = Math.round(raw / step) * step;
+    if (rebuilds.has(key)) buildCloud();
+    syncPanel();
+  };
+  el.addEventListener("pointerdown", e => {
+    set(e.clientX);
+    try { el.setPointerCapture(e.pointerId); } catch {}
+  });
+  el.addEventListener("pointermove", e => {
+    if (el.hasPointerCapture(e.pointerId)) set(e.clientX);
+  });
+});
+
+$$("[data-variant]").forEach(o => o.addEventListener("click", () => { cfg.variant = o.dataset.variant; syncPanel(); }));
+$$("[data-motion]").forEach(o => o.addEventListener("click", () => { cfg.motion = o.dataset.motion; syncPanel(); }));
+
+$("#btnSeed").addEventListener("click", () => {
+  cfg.seed = Math.floor(Math.random() * 1e6);
+  buildCloud();
+});
+
+/* Connector: elbow line from the visible panel-toggle button into the panel,
+   same stroke color as both borders. Desktop only — the mobile panel is a
+   full-width sheet directly above its button, so a connector adds nothing. */
+function updateConnector() {
+  const conn = $("#connector");
+  const panel = $("#panel");
+  const btn = $("#btnPanel");
+  const btnVisible = btn.getBoundingClientRect().width > 0;
+  if (panel.style.display !== "block" || !btnVisible) { conn.style.display = "none"; return; }
+  const b = btn.getBoundingClientRect();
+  const p = panel.getBoundingClientRect();
+  const x1 = b.right, y1 = b.top + b.height / 2;
+  const xm = p.left + 24;
+  $("#connPath").setAttribute("points", `${x1},${y1} ${xm},${y1} ${xm},${p.bottom}`);
+  conn.style.display = "block";
+}
+
+function setPanel(show) {
+  $("#panel").style.display = show ? "block" : "none";
+  updateConnector();
+}
+function setMenu(show) {
+  $("#mmenu").style.display = show ? "block" : "none";
+}
+$("#btnPanel").addEventListener("click", () => {
+  setPanel($("#panel").style.display !== "block");
+});
+$("#btnCogM").addEventListener("click", () => {
+  const show = $("#panel").style.display !== "block";
+  setMenu(false); setPanel(show);
+});
+$("#btnMenuM").addEventListener("click", () => {
+  const show = $("#mmenu").style.display !== "block";
+  setPanel(false); setMenu(show);
+});
+
+/* npx buttons: package isn't published yet — flash "coming soon", no copy */
+function comingSoon(labelEl, original) {
+  labelEl.textContent = "coming soon";
+  setTimeout(() => { labelEl.textContent = original; }, 1200);
+}
+$("#btnNpx").addEventListener("click", () => comingSoon($("#npxLabel"), "npx tamage init"));
+$("#btnNpxM").addEventListener("click", () => comingSoon($("#npxLabelM"), "npx"));
+
+/* -------------------------------------------------------------------- init */
+buildCloud();
+syncPanel();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# --- private strategy docs (never public, by policy) ---
+HANDOFF.md
+DECISIONS.md
+PLAYBOOK.md
+plainenglish.pdf
+archive/
+skills-lock.json
+.agents/
+.claude/
+
+# --- data (huge / derived / private) ---
+free_company_dataset.json
+dataset/companies.parquet
+dataset/exports/
+dataset/scraped.jsonl
+dataset/.env
+
+# --- environment / OS ---
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+/fonts/
