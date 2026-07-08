@@ -16,6 +16,17 @@ dataset/scraped.jsonl
 dataset/enriched.jsonl
 dataset/.env
 
+# --- spike artifacts (code is public; run outputs stay local) ---
+spike/*.npz
+spike/*.npy
+spike/output/
+spike/cluster_stats.json
+spike/segments_*.json
+spike/bakeoff_results.csv
+spike/judge_*.txt
+spike/tournament.txt
+spike/canary_evidence.txt
+
 # --- environment / OS ---
 .venv/
 __pycache__/
