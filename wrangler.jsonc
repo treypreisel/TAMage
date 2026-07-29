@@ -1,0 +1,10 @@
+{
+  // Deploys the landing page to the existing Cloudflare Worker (static assets).
+  // Created via dashboard drag-and-drop originally; this config lets the CLI
+  // target the same worker: `npx wrangler deploy`
+  "name": "tamage-v1",
+  "compatibility_date": "2026-07-01",
+  "assets": {
+    "directory": "./site"
+  }
+}
