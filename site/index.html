@@ -148,16 +148,14 @@
   /* Connector between the Control Panel button and the panel (desktop) */
   #connector { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
 
-  /* ------------------------------- waitlist box (opens from npx button) */
+  /* --- waitlist box: opens to the LEFT of the npx button (JS positions it) */
   #pingbox {
-    position: fixed; bottom: 80px; left: 50%; transform: translateX(-58%);
-    width: 238px; background: rgba(5,5,5,0.9); border: 1px solid #262626;
-    padding: 13px 14px; display: none;
+    position: fixed; bottom: 27px; width: 218px;
+    background: rgba(5,5,5,0.9); border: 1px solid #262626;
+    padding: 11px 12px; display: none;
     font: 10px/2 "Geist Mono", ui-monospace, monospace; color: #888;
   }
-  #pingbox .phead { color: #E1F06F; margin-bottom: 6px; }
-  #pingbox .phead::before { content: "~ "; color: #555; }
-  #pingrow { display: flex; gap: 6px; margin-top: 8px; }
+  #pingrow { display: flex; gap: 6px; margin-top: 6px; }
   #pingemail {
     flex: 1; min-width: 0; height: 25px; box-sizing: border-box;
     background: #0c0c0c; border: 1px solid #262626; border-radius: 3px;
@@ -197,8 +195,8 @@
   <a class="btn icon" href="https://x.com/Trey_Labs" target="_blank" rel="noopener" aria-label="X" title="X">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644z"/></svg>
   </a>
-  <a class="btn" href="#">Research</a>
-  <a class="btn" href="#">Creator</a>
+  <a class="btn" href="#" style="display:none">Research</a>
+  <a class="btn" href="#" style="display:none">Creator</a>
   <a class="btn icon" href="https://www.linkedin.com/in/tpreisel-connect/" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn">
     <svg viewBox="1.6 1.6 20.8 20.8" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452z"/></svg>
   </a>
@@ -225,8 +223,8 @@
 </nav>
 
 <div id="mmenu">
-  <a class="mitem" href="#">research</a>
-  <a class="mitem" href="#">creator</a>
+  <a class="mitem" href="#" style="display:none">research</a>
+  <a class="mitem" href="#" style="display:none">creator</a>
   <a class="mitem" href="https://www.linkedin.com/in/tpreisel-connect/" target="_blank" rel="noopener">linkedin
     <svg viewBox="1.6 1.6 20.8 20.8" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452z"/></svg>
   </a>
@@ -242,12 +240,13 @@
 <svg id="connector2"><polyline id="connPath2" fill="none" stroke="#262626" stroke-width="1"/></svg>
 
 <div id="pingbox">
-  <div class="phead">tamage.waitlist</div>
-  <div>command copied — the package isn't live yet.</div>
+  <div>we'll ping you when it's ready.</div>
   <form id="pingform">
     <div id="pingrow">
       <input id="pingemail" type="email" placeholder="you@company.com" autocomplete="email" required aria-label="email">
-      <button class="btn accent" type="submit">notify me</button>
+      <button class="btn accent icon" type="submit" aria-label="notify me">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+      </button>
     </div>
   </form>
 </div>
@@ -590,35 +589,39 @@ $("#btnMenuM").addEventListener("click", () => {
   setPanel(false); setMenu(show);
 });
 
-/* npx buttons: copy the command, track the click, open the waitlist box.
-   Elbow connector into the box mirrors the Control Panel connector. */
+/* npx buttons: package isn't published — flash "coming soon", track the
+   click, and open the waitlist box to the LEFT of the button (desktop),
+   joined by a horizontal connector like the Control Panel's. */
 function updatePingConnector() {
   const conn = $("#connector2"), box = $("#pingbox"), btn = $("#btnNpx");
   const btnVisible = btn.getBoundingClientRect().width > 0;
-  if (box.style.display !== "block" || !btnVisible) { conn.style.display = "none"; return; }
-  const b = btn.getBoundingClientRect(), p = box.getBoundingClientRect();
-  const x = Math.round(b.left + 12);
-  $("#connPath2").setAttribute("points", `${x},${b.top} ${x},${p.bottom}`);
+  if (box.style.display !== "block" || !btnVisible) {
+    conn.style.display = "none";
+    box.style.right = "";  // let the mobile sheet CSS take over
+    return;
+  }
+  const b = btn.getBoundingClientRect();
+  box.style.right = Math.round(window.innerWidth - b.left + 24) + "px";
+  const p = box.getBoundingClientRect();
+  const y = Math.round(b.top + b.height / 2);
+  $("#connPath2").setAttribute("points", `${b.left},${y} ${p.right},${y}`);
   conn.style.display = "block";
 }
 function setPing(show) {
   $("#pingbox").style.display = show ? "block" : "none";
   updatePingConnector();
 }
-async function copyNpx(labelEl, original) {
+function npxClick(labelEl, original) {
   gtag("event", "copy_install_cmd");
-  try {
-    await navigator.clipboard.writeText("npx tamage init");
-    labelEl.textContent = "copied";
-  } catch { labelEl.textContent = "coming soon"; }
+  labelEl.textContent = "coming soon";
   setTimeout(() => { labelEl.textContent = original; }, 1200);
   setMenu(false);
   const opening = $("#pingbox").style.display !== "block";
   setPing(opening);
   if (opening) setTimeout(() => { const e = $("#pingemail"); if (e) e.focus(); }, 60);
 }
-$("#btnNpx").addEventListener("click", () => copyNpx($("#npxLabel"), "npx tamage init"));
-$("#btnNpxM").addEventListener("click", () => copyNpx($("#npxLabelM"), "npx"));
+$("#btnNpx").addEventListener("click", () => npxClick($("#npxLabel"), "npx tamage init"));
+$("#btnNpxM").addEventListener("click", () => npxClick($("#npxLabelM"), "npx"));
 
 $("#pingform").addEventListener("submit", async e => {
   e.preventDefault();
@@ -632,7 +635,7 @@ $("#pingform").addEventListener("submit", async e => {
     });
     if (!r.ok) throw new Error();
     gtag("event", "waitlist_signup");
-    $("#pingform").innerHTML = '<div id="pingdone">✓ on the list — we\'ll ping you.</div>';
+    $("#pingform").innerHTML = '<div id="pingdone">✓ we\'ll ping you.</div>';
     setTimeout(() => setPing(false), 2600);
   } catch {
     $("#pingemail").style.borderColor = "#7a3b33";
