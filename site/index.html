@@ -148,6 +148,27 @@
   /* Connector between the Control Panel button and the panel (desktop) */
   #connector { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
 
+  /* ------------------------------- waitlist box (opens from npx button) */
+  #pingbox {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-58%);
+    width: 238px; background: rgba(5,5,5,0.9); border: 1px solid #262626;
+    padding: 13px 14px; display: none;
+    font: 10px/2 "Geist Mono", ui-monospace, monospace; color: #888;
+  }
+  #pingbox .phead { color: #E1F06F; margin-bottom: 6px; }
+  #pingbox .phead::before { content: "~ "; color: #555; }
+  #pingrow { display: flex; gap: 6px; margin-top: 8px; }
+  #pingemail {
+    flex: 1; min-width: 0; height: 25px; box-sizing: border-box;
+    background: #0c0c0c; border: 1px solid #262626; border-radius: 3px;
+    color: #ddd; font: 9px/1 "Geist Mono", ui-monospace, monospace;
+    letter-spacing: 0.03em; padding: 0 8px; outline: none;
+  }
+  #pingemail:focus { border-color: #4a4a4a; color: #fff; }
+  #pingemail::placeholder { color: #555; }
+  #pingdone { color: #E1F06F; }
+  #connector2 { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
+
   /* ------------------------------------------------------------ mobile */
   @media (max-width: 700px) {
     #topbar, #botbar { display: none; }
@@ -157,6 +178,7 @@
     #logo { font-size: clamp(44px, 14vw, 72px); line-height: 1.05; letter-spacing: -3px; }
     #tag { font-size: 13px; line-height: 21px; }
     #panel { left: 16px; right: 16px; width: auto; bottom: 74px; }
+    #pingbox { left: 16px; right: 16px; width: auto; transform: none; bottom: 74px; }
     .prow-motion { display: none; }  /* mouse-follow is meaningless on touch */
   }
 </style>
@@ -217,6 +239,18 @@
 </div>
 
 <svg id="connector"><polyline id="connPath" fill="none" stroke="#262626" stroke-width="1"/></svg>
+<svg id="connector2"><polyline id="connPath2" fill="none" stroke="#262626" stroke-width="1"/></svg>
+
+<div id="pingbox">
+  <div class="phead">tamage.waitlist</div>
+  <div>command copied — the package isn't live yet.</div>
+  <form id="pingform">
+    <div id="pingrow">
+      <input id="pingemail" type="email" placeholder="you@company.com" autocomplete="email" required aria-label="email">
+      <button class="btn accent" type="submit">notify me</button>
+    </div>
+  </form>
+</div>
 
 <div id="panel">
   <div class="phead">tamage.config</div>
@@ -344,7 +378,7 @@ function resize() {
   canvas.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
-window.addEventListener("resize", () => { resize(); snapLockup(); updateConnector(); });
+window.addEventListener("resize", () => { resize(); snapLockup(); updateConnector(); updatePingConnector(); });
 resize();
 
 /* Snap the lockup to whole device pixels — flex centering leaves it at a
@@ -556,13 +590,55 @@ $("#btnMenuM").addEventListener("click", () => {
   setPanel(false); setMenu(show);
 });
 
-/* npx buttons: package isn't published yet — flash "coming soon", no copy */
-function comingSoon(labelEl, original) {
-  labelEl.textContent = "coming soon";
-  setTimeout(() => { labelEl.textContent = original; }, 1200);
+/* npx buttons: copy the command, track the click, open the waitlist box.
+   Elbow connector into the box mirrors the Control Panel connector. */
+function updatePingConnector() {
+  const conn = $("#connector2"), box = $("#pingbox"), btn = $("#btnNpx");
+  const btnVisible = btn.getBoundingClientRect().width > 0;
+  if (box.style.display !== "block" || !btnVisible) { conn.style.display = "none"; return; }
+  const b = btn.getBoundingClientRect(), p = box.getBoundingClientRect();
+  const x = Math.round(b.left + 12);
+  $("#connPath2").setAttribute("points", `${x},${b.top} ${x},${p.bottom}`);
+  conn.style.display = "block";
 }
-$("#btnNpx").addEventListener("click", () => comingSoon($("#npxLabel"), "npx tamage init"));
-$("#btnNpxM").addEventListener("click", () => comingSoon($("#npxLabelM"), "npx"));
+function setPing(show) {
+  $("#pingbox").style.display = show ? "block" : "none";
+  updatePingConnector();
+}
+async function copyNpx(labelEl, original) {
+  gtag("event", "copy_install_cmd");
+  try {
+    await navigator.clipboard.writeText("npx tamage init");
+    labelEl.textContent = "copied";
+  } catch { labelEl.textContent = "coming soon"; }
+  setTimeout(() => { labelEl.textContent = original; }, 1200);
+  setMenu(false);
+  const opening = $("#pingbox").style.display !== "block";
+  setPing(opening);
+  if (opening) setTimeout(() => { const e = $("#pingemail"); if (e) e.focus(); }, 60);
+}
+$("#btnNpx").addEventListener("click", () => copyNpx($("#npxLabel"), "npx tamage init"));
+$("#btnNpxM").addEventListener("click", () => copyNpx($("#npxLabelM"), "npx"));
+
+$("#pingform").addEventListener("submit", async e => {
+  e.preventDefault();
+  const email = $("#pingemail").value.trim();
+  if (!email) return;
+  try {
+    const r = await fetch("/api/waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    if (!r.ok) throw new Error();
+    gtag("event", "waitlist_signup");
+    $("#pingform").innerHTML = '<div id="pingdone">✓ on the list — we\'ll ping you.</div>';
+    setTimeout(() => setPing(false), 2600);
+  } catch {
+    $("#pingemail").style.borderColor = "#7a3b33";
+    setTimeout(() => { $("#pingemail").style.borderColor = ""; }, 1500);
+  }
+});
 
 /* -------------------------------------------------------------------- init */
 buildCloud();
