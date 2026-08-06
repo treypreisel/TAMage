@@ -167,6 +167,22 @@
   #pingdone { color: #E1F06F; }
   #connector2 { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
 
+  /* --- thesis box: opens above the Thesis button in the bottom bar */
+  #thesisbox {
+    position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%);
+    width: min(560px, calc(100vw - 32px)); box-sizing: border-box;
+    max-height: calc(100vh - 160px); overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: #262626 transparent;
+    background: rgba(5,5,5,0.92); border: 1px solid #262626;
+    padding: 15px 18px; display: none;
+    font: 11px/1.9 "Geist Mono", ui-monospace, monospace; color: #aaa;
+  }
+  #thesisbox .thead { color: #E1F06F; margin-bottom: 10px; }
+  #thesisbox .thead::before { content: "~ "; color: #555; }
+  #thesisbox p { margin: 0 0 14px; }
+  #thesisbox p:last-child { margin-bottom: 0; }
+  #connector3 { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
+
   /* ------------------------------------------------------------ mobile */
   @media (max-width: 700px) {
     #topbar, #botbar { display: none; }
@@ -176,6 +192,7 @@
     #logo { font-size: clamp(44px, 14vw, 72px); line-height: 1.05; letter-spacing: -3px; }
     #tag { font-size: 13px; line-height: 21px; }
     #panel { left: 16px; right: 16px; width: auto; bottom: 74px; }
+    #thesisbox { bottom: 74px; max-height: calc(100% - 156px); }
     #pingbox { left: 16px; right: 16px; width: auto; transform: none; bottom: 74px; }
     .prow-motion { display: none; }  /* mouse-follow is meaningless on touch */
   }
@@ -207,6 +224,7 @@
     <span id="npxLabel">npx tamage init</span>
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
   </button>
+  <button class="btn accent" id="btnThesis">Thesis</button>
   <button class="btn accent" id="btnPanel">
     Control Panel
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -223,6 +241,7 @@
 </nav>
 
 <div id="mmenu">
+  <button class="mitem" id="btnThesisM">thesis</button>
   <a class="mitem" href="#" style="display:none">research</a>
   <a class="mitem" href="#" style="display:none">creator</a>
   <a class="mitem" href="https://www.linkedin.com/in/tpreisel-connect/" target="_blank" rel="noopener">linkedin
@@ -238,6 +257,21 @@
 
 <svg id="connector"><polyline id="connPath" fill="none" stroke="#262626" stroke-width="1"/></svg>
 <svg id="connector2"><polyline id="connPath2" fill="none" stroke="#262626" stroke-width="1"/></svg>
+<svg id="connector3"><polyline id="connPath3" fill="none" stroke="#262626" stroke-width="1"/></svg>
+
+<div id="thesisbox">
+  <div class="thead">tamage.thesis</div>
+  <!-- THESIS TEXT — paste the final copy over the paragraphs below -->
+  <p>GTM still hasn't solved TAM segmentation.</p>
+  <p>Sales lives or dies on the relevance a message has to its receiver. This is why marketers use segments. At scale, that relevance is decided before a single word gets transmitted, through what bucket each account gets assigned to. What TAMage's thesis questions: is the status quo drawing those different segments on the same axis you differentiate your messaging on? Mostly, no.</p>
+  <p>If you look at how teams treat outbound nowadays, you'll find three patterns:</p>
+  <p>1) Naive teams treat the whole TAM as one bucket. One message for everyone, relevance for no one.</p>
+  <p>2) AI-eager teams are the opposite extreme. Generating unique copy per lead, effectively one new "segment" per row. The models can't yet write strong sales copy, regardless of how much prompt engineering or account context you input.</p>
+  <p>3) Disciplined teams segment w/ deterministic filters: size, funding, industry. Feels rigorous, until it's checked against the axis: is having different copy for 30-person companies vs. 300-person companies the most effective use of segmentation? Maybe if you are an HR SaaS, but for everyone else, it's suboptimal. These firmographic traits are convenient lines to draw, but they are not the lines your messaging differentiates on. They lack nuance.</p>
+  <p>The nuance lives in the unstructured data you can already find. What a company does, sells, and struggles with is written in its positioning, its product language, its website. Embedding models translate all this data into vectors, every account gets real coordinates in semantic space. Clustering algorithms find the natural groups in this space.</p>
+  <p>The result: segments defined by what makes these companies tick — the same axis your messaging differentiates on — with an explanation on how to sell to each one. Every account shows its segment, its fit to your ICP, and the model's confidence in the assignment.</p>
+  <p>TAMage is that translation layer. Feed it your enriched TAM and it hands back the map. Giving you access to this workflow without the ML learning curve, as an open-source CLI.</p>
+</div>
 
 <div id="pingbox">
   <div>we'll ping you when it's ready.</div>
@@ -377,7 +411,7 @@ function resize() {
   canvas.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
-window.addEventListener("resize", () => { resize(); snapLockup(); updateConnector(); updatePingConnector(); });
+window.addEventListener("resize", () => { resize(); snapLockup(); updateConnector(); updatePingConnector(); updateThesisConnector(); });
 resize();
 
 /* Snap the lockup to whole device pixels — flex centering leaves it at a
@@ -587,6 +621,34 @@ $("#btnCogM").addEventListener("click", () => {
 $("#btnMenuM").addEventListener("click", () => {
   const show = $("#mmenu").style.display !== "block";
   setPanel(false); setMenu(show);
+});
+
+/* Thesis box: short vertical connector rising from the Thesis button into
+   the box, same stroke as the other connectors. Desktop only — on mobile the
+   bottom bar is hidden, so btnVisible is false and the line stays off. */
+function updateThesisConnector() {
+  const conn = $("#connector3"), box = $("#thesisbox"), btn = $("#btnThesis");
+  const btnVisible = btn.getBoundingClientRect().width > 0;
+  if (box.style.display !== "block" || !btnVisible) { conn.style.display = "none"; return; }
+  const b = btn.getBoundingClientRect();
+  const p = box.getBoundingClientRect();
+  const x = Math.round(b.left + b.width / 2);
+  $("#connPath3").setAttribute("points", `${x},${b.top} ${x},${p.bottom}`);
+  conn.style.display = "block";
+}
+function setThesis(show) {
+  $("#thesisbox").style.display = show ? "block" : "none";
+  updateThesisConnector();
+}
+$("#btnThesis").addEventListener("click", () => {
+  const show = $("#thesisbox").style.display !== "block";
+  if (show) gtag("event", "view_thesis");
+  setThesis(show);
+});
+$("#btnThesisM").addEventListener("click", () => {
+  const show = $("#thesisbox").style.display !== "block";
+  if (show) gtag("event", "view_thesis");
+  setMenu(false); setThesis(show);
 });
 
 /* npx buttons: package isn't published — flash "coming soon", track the
